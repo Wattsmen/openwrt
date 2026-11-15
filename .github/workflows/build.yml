@@ -1,1 +1,45 @@
+name: Build ImmortalWrt
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Целевая платформа'
+        required: true
+        default: 'ipq40xx'
+      subtarget:
+        description: 'Подплатформа'
+        required: true
+        default: 'mikrotik'
+      device:
+        description: 'Устройство'
+        required: true
+        default: 'mikrotik_hap-ac2'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Проверка исходников
+        uses: actions/checkout@v4
+
+      - name: Сборка прошивки
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ccache ecj fastjar file g++ gawk \
+            gettext git java-propose-classpath libelf-dev libncurses5-dev \
+            libncursesw5-dev libssl-dev python3 python3-setuptools python3-pip \
+            unzip wget zlib1g-dev
+
+          echo "CONFIG_TARGET_${{ github.event.inputs.target }}_${{ github.event.inputs.subtarget }}=y" > .config
+          echo "CONFIG_TARGET_${{ github.event.inputs.target }}_DEVICE_${{ github.event.inputs.device }}=y" >> .config
+
+          make -j$(nproc) defconfig
+          make -j$(nproc)
+
+      - name: Сохранение артефактов
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenWrt-Firmware
+          path: bin/targets/**/*.bin
 
